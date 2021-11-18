@@ -14,14 +14,13 @@ func main() {
 
 	flag.Parse()
 
-	if *mode == "learn" {
-		if *language == "NA" {
-			log.Fatal("You must specify a language in learn mode.")
-		}
+	switch *mode {
+	case "learn":
 		src.Learn(*path, *language)
+	case "guess":
+		log.Fatal("Not yet implemented!")
+	default:
+		log.Fatal("Mode not recognised. Modes are 'guess' or 'learn'.")
 	}
-	if *mode == "guess" {
-		// not yet implemented
-		//src.Guess(*path)
-	}
+
 }

@@ -1,14 +1,25 @@
 package src
 
-import "strings"
+import (
+	"strings"
+	"unicode"
+)
 
 // Contains functions used by both guess and learn modes.
 
 // Distribution splits a string into individual letters and calculates a distribution of prevalence
 func Distribution(str string) map[string]float64 {
-	letters := strings.Split(str, "")
+
+	var letters []string
+	characters := strings.Split(str, "")
+	for _, char := range characters {
+		if unicode.IsLetter([]rune(char)[0]) {
+			char = strings.ToLower(char)
+			letters = append(letters, char)
+		}
+	}
 	total := len(letters)
-	unique := uniqueLetters(str)
+	unique := unique(letters)
 
 	distribution := make(map[string]float64)
 
@@ -23,12 +34,10 @@ func Distribution(str string) map[string]float64 {
 	return distribution
 }
 
-// uniqueLetters returns a slice of all unique letters in a string.
-// TODO: make this remove punctuation
-func uniqueLetters(str string) []string {
-	letters := strings.Split(str, "")
+// unique returns a slice of all unique characters in a slice.
+func unique(slice []string) []string {
 	unique := make([]string, 0, 30)
-	for _, letter := range letters {
+	for _, letter := range slice {
 		found := findInSlice(unique, letter)
 		if !found {
 			unique = append(unique, letter)

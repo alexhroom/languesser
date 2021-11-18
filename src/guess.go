@@ -13,7 +13,7 @@ func simliarityScore(dist map[string]float64, lang map[string]float64) (float64,
 	for k := range dist {
 		if _, exists := lang[k]; !exists {
 			// discount language as possible if text contains a letter that isn't in the language
-			return 0, errors.New("A letter in the distribution does not exist in the language.")
+			return 0, errors.New("a letter in the distribution does not exist in the language.")
 		}
 		letterScore := math.Abs(dist[k] - lang[k])
 		scoreSum += letterScore

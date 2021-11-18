@@ -5,12 +5,15 @@ import (
 	"errors"
 	"log"
 	"os"
+	"sync"
 )
 
 // Learn reads a directory of files for a language and produces a language file.
 func Learn(directory string, language string) {
 
 	var outputMap map[string]float64
+	var wg sync.WaitGroup
+	channel := make(chan map[string]float64)
 
 	// read directory
 	files, readDirErr := os.ReadDir(directory)
@@ -21,20 +24,32 @@ func Learn(directory string, language string) {
 	// calculate distribution for each file
 	for i, file := range files {
 		path := directory + file.Name()
-		fileContent, readFileErr := os.ReadFile(path)
-		if readFileErr != nil {
-			log.Fatal(readFileErr)
-		}
-		fileText := string(fileContent)
-		fileDistribution := Distribution(fileText)
+		go func(path string) {
+			fileContent, readFileErr := os.ReadFile(path)
+			if readFileErr != nil {
+				log.Fatal(readFileErr)
+			}
+			fileText := string(fileContent)
+			fileDistribution := Distribution(fileText)
+			channel <- fileDistribution
+		}(path)
+
+		fileDistribution := <-channel
 		if i == 0 {
 			outputMap = fileDistribution
 		} else {
-			outputMap = AverageMaps(outputMap, fileDistribution)
+			// goroutine adds a wrapper to AverageMaps so that language file is not output while
+			// last map is still being added
+			wg.Add(1)
+			go func(outputMap map[string]float64, fileDistribution map[string]float64) {
+				AverageMaps(outputMap, fileDistribution)
+				wg.Done()
+			}(outputMap, fileDistribution)
 		}
 	}
 
 	// output new map to file
+	wg.Wait()
 	outputLanguageFile(outputMap, language)
 }
 
@@ -87,8 +102,17 @@ func writeLanguageFile(languageMap map[string]float64, language string) {
 	// set path to write file to
 	path := "./langfiles/" + language + ".json"
 
+	// if langfiles directory does not exist, create it
+	_, err := os.Stat("./langfiles")
+	if errors.Is(err, os.ErrNotExist) {
+		os.Mkdir("./langfiles", 0777)
+	}
+
 	// write file with read + write access for all users
-	os.WriteFile(path, languageJSON, 0666)
+	writeErr := os.WriteFile(path, languageJSON, 0777)
+	if writeErr != nil {
+		log.Fatal(writeErr)
+	}
 }
 
 // AverageMaps takes two language maps and averages each value
